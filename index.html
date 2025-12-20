@@ -2,12 +2,10 @@
 <html>
 <body style="font-family:sans-serif; padding:15px; background:#F2F2F7;">
     <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
-        <h2 style="text-align:center;">Scanner Étape 4</h2>
-        <p style="font-size:12px; color:#666;">On va analyser l'Amphi A pour le <b>Lundi 22 Décembre</b> (censé être occupé).</p>
+        <h2 style="text-align:center;">Scanner : Samedi 20 Déc.</h2>
+        <button onclick="scanner()" style="width:100%; padding:15px; background:#FF9500; color:white; border:none; border-radius:10px; font-weight:bold;">Scanner l'Amphi A (20/12)</button>
         
-        <button onclick="scanner()" style="width:100%; padding:15px; background:#007AFF; color:white; border:none; border-radius:10px; font-weight:bold;">Lancer le Scanner</button>
-        
-        <div id="console" style="margin-top:20px; background:black; color:#0f0; padding:15px; font-family:monospace; font-size:11px; border-radius:5px; white-space:pre-wrap; overflow-x:auto; min-height:200px;">
+        <div id="console" style="margin-top:20px; background:black; color:#0f0; padding:15px; font-family:monospace; font-size:11px; border-radius:5px; white-space:pre-wrap; min-height:300px;">
             En attente du scan...
         </div>
     </div>
@@ -15,14 +13,13 @@
 <script>
 async function scanner() {
     const out = document.getElementById('console');
-    const dateTest = "20251222"; // Lundi 22 Décembre
-    out.innerHTML = "--- DÉBUT DU SCAN ---\n";
+    const dateR = "20251220"; 
+    out.innerHTML = "--- DÉBUT DU SCAN (AMPHI A) ---\n";
     
     try {
         const target = `http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=109269`;
         const url = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}&t=${Date.now()}`;
         
-        out.innerHTML += "1. Connexion Proxy...\n";
         const res = await fetch(url);
         const data = await res.json();
         
@@ -31,39 +28,41 @@ async function scanner() {
             return;
         }
         
-        out.innerHTML += "2. Fichier reçu (" + data.contents.length + " octets)\n";
-        
         const events = data.contents.split("BEGIN:VEVENT");
-        out.innerHTML += "3. Événements trouvés : " + (events.length - 1) + "\n";
+        out.innerHTML += "Événements totaux dans le fichier : " + (events.length - 1) + "\n";
+        out.innerHTML += "Recherche de la date : " + dateR + "\n";
 
-        // On cherche un cours pour le lundi 22
         let trouvé = false;
         for (let i = 1; i < events.length; i++) {
             const ev = events[i];
-            const startMatch = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{4})/);
+            const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{6}Z?)/);
             
-            if (startMatch && startMatch[1].startsWith(dateTest)) {
+            if (sd && sd[1].startsWith(dateR)) {
                 trouvé = true;
-                const endMatch = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{4})/);
-                const summary = ev.match(/SUMMARY:(.*)/);
+                const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{6}Z?)/);
+                const sum = ev.match(/SUMMARY:(.*)/);
                 
-                out.innerHTML += "\n--- COURS TROUVÉ LE 22 ---\n";
-                out.innerHTML += "NOM : " + (summary ? summary[1].substring(0,25) : "???") + "\n";
-                out.innerHTML += "DÉBUT BRUT : " + startMatch[1] + "\n";
-                out.innerHTML += "FIN BRUT   : " + (endMatch ? endMatch[1] : "???") + "\n";
+                out.innerHTML += "\n📍 ÉVÉNEMENT TROUVÉ :\n";
+                out.innerHTML += "TEXTE : " + (sum ? sum[1].substring(0,40) : "Sans nom") + "\n";
+                out.innerHTML += "DÉBUT : " + sd[1] + "\n";
+                out.innerHTML += "FIN   : " + (ed ? ed[1] : "???") + "\n";
                 
-                // Test du calcul mathématique
-                const hs = parseInt(startMatch[1].slice(9, 13));
-                out.innerHTML += "MATH HS (Brut) : " + hs + "\n";
-                out.innerHTML += "MATH HS (+1h)  : " + (hs + 100) + "\n";
-                break;
+                // On vérifie si c'est un format UTC (Z) ou local
+                if (sd[1].includes('Z')) {
+                    out.innerHTML += "FORMAT : UTC (Besoin de +1h)\n";
+                } else {
+                    out.innerHTML += "FORMAT : Local (Pas de correction)\n";
+                }
             }
         }
         
-        if (!trouvé) out.innerHTML += "\n4. ALERTE : Aucun cours trouvé pour le 22/12 dans ce fichier.\n";
+        if (!trouvé) {
+            out.innerHTML += "\n❌ AUCUN événement trouvé pour le 20/12.\n";
+            out.innerHTML += "Cela signifie que le serveur de la fac n'envoie PAS cet événement à ton iPhone via ce lien.";
+        }
 
     } catch (e) {
-        out.innerHTML += "\nERREUR CRITIQUE : " + e.message;
+        out.innerHTML += "\nERREUR : " + e.message;
     }
 }
 </script>
