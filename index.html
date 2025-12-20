@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Salles Libres</title>
+    <title>Salles libres</title>
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/calendar--v1.png">
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h1 { font-size: 24px; margin: 0 0 20px 0; color: #000; text-align: center; font-weight: 700; }
-        label { display: block; font-size: 14px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
+        h1 { font-size: 24px; margin: 0 0 15px 0; color: #000; text-align: center; font-weight: 700; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; text-transform: uppercase; }
         input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; -webkit-appearance: none; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
         button:active { opacity: 0.7; }
-        .result-item { background: #E5E5EA; padding: 15px; border-radius: 10px; margin-top: 10px; display: flex; justify-content: space-between; font-weight: 500; }
-        #status { text-align: center; font-size: 14px; color: var(--primary); margin-top: 10px; min-height: 20px; font-weight: 500; }
-        .aucun { text-align: center; color: #8E8E93; padding: 20px; font-style: italic; }
+        #status { text-align: center; font-size: 14px; color: var(--primary); margin: 10px 0; font-weight: 500; min-height: 20px; }
+        .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .salle-nom { font-weight: 600; color: #1C1C1E; }
+        .badge { background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; }
+        .aucun { text-align: center; color: #8E8E93; padding: 30px; font-style: italic; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Salles Libres</h1>
+    <h1>Salles libres</h1>
     <label>Date</label>
     <input type="date" id="date">
     <div style="display:flex; gap:10px;">
@@ -36,11 +38,57 @@
 <div id="results"></div>
 
 <script>
-    // Liste des amphis Bias 2
+    // Liste complète des salles synchronisée avec ton importer.py
     const SALLES = [
-        {nom: "Amphi A", id: "109269"},
-        {nom: "Amphi B", id: "109270"},
-        {nom: "Amphi C", id: "109271"}
+        {"nom": "Bias 2 Amphi A", "code": "109269"},
+        {"nom": "Bias 2 Amphi B", "code": "109270"},
+        {"nom": "Bias 2 Amphi C", "code": "109271"},
+        {"nom": "Bias 2 Salle 004", "code": "109264"},
+        {"nom": "Bias 2 Salle 005", "code": "109265"},
+        {"nom": "Bias 2 Salle 006", "code": "109266"},
+        {"nom": "Bias 2 Salle 007", "code": "109267"},
+        {"nom": "Bias Amphi V. Ferré", "code": "109250"},
+        {"nom": "Bias Salle 051", "code": "109248"},
+        {"nom": "Bias Salle 052", "code": "109249"},
+        {"nom": "Bias Salle 117", "code": "109252"},
+        {"nom": "Bias Salle 121", "code": "109254"},
+        {"nom": "Bias Salle 161-122", "code": "109258"},
+        {"nom": "Bias Salle 162", "code": "109259"},
+        {"nom": "Bias Salle 163-164", "code": "109260"},
+        {"nom": "Bias Salle 165", "code": "109261"},
+        {"nom": "Bias Salle 166", "code": "109221"},
+        {"nom": "Bias Salle 167", "code": "109222"},
+        {"nom": "Bias Salle 205", "code": "109225"},
+        {"nom": "Bias Salle 207", "code": "109190"},
+        {"nom": "Bias Salle 208", "code": "109262"},
+        {"nom": "Bias Salle 211", "code": "109263"},
+        {"nom": "Bias Salle A442", "code": "109212"},
+        {"nom": "Veil Salle 201A", "code": "109228"},
+        {"nom": "Veil Salle 243", "code": "109278"},
+        {"nom": "Veil Salle 244", "code": "109233"},
+        {"nom": "Veil Salle 301A", "code": "109172"},
+        {"nom": "Veil Salle 301B", "code": "109234"},
+        {"nom": "Veil Salle 302", "code": "109186"},
+        {"nom": "Veil Salle 303", "code": "109187"},
+        {"nom": "Veil Salle 338", "code": "109188"},
+        {"nom": "Veil Salle 339", "code": "109173"},
+        {"nom": "Veil Salle 340", "code": "109174"},
+        {"nom": "Veil Salle 341", "code": "109175"},
+        {"nom": "Veil Salle 447", "code": "109176"},
+        {"nom": "Veil Salle 502", "code": "109177"},
+        {"nom": "Veil Salle 503", "code": "109178"},
+        {"nom": "Veil Salle 504", "code": "109179"},
+        {"nom": "Veil Salle 554", "code": "109180"},
+        {"nom": "Veil Salle 555", "code": "109181"},
+        {"nom": "Veil Amphi 1", "code": "109182"},
+        {"nom": "Veil Amphi 2", "code": "109183"},
+        {"nom": "Veil Amphi 3", "code": "109184"},
+        {"nom": "Veil Amphi 4", "code": "109185"},
+        {"nom": "Veil Amphi 5", "code": "109220"},
+        {"nom": "Veil Amphi 6", "code": "109235"},
+        {"nom": "Veil Amphi 7", "code": "109236"},
+        {"nom": "Veil Amphi 8", "code": "109174"},
+        {"nom": "Veil Amphi 9", "code": "109237"},
     ];
 
     document.getElementById('date').valueAsDate = new Date();
@@ -52,48 +100,53 @@
         const hStart = document.getElementById('start').value.replace(":", "") + "00";
         const hEnd = document.getElementById('end').value.replace(":", "") + "00";
 
-        status.innerText = "Consultation de l'EDT...";
+        status.innerText = "Interrogation de CELCAT...";
         resultsDiv.innerHTML = "";
-
         let libres = [];
 
-        for (let salle of SALLES) {
+        // On lance toutes les requêtes en même temps pour gagner du temps
+        const promises = SALLES.map(async (salle) => {
             try {
-                const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://edt.univ-nantes.fr/medecine/g${salle.id}.ics`)}`;
+                const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`)}`;
                 const response = await fetch(url);
                 const data = await response.json();
-                
                 if (!isOccupied(data.contents, dateRech, hStart, hEnd)) {
-                    libres.push(salle.nom);
+                    return salle.nom;
                 }
-            } catch (e) { 
-                console.error(e); 
-            }
-        }
+            } catch (e) { return null; }
+        });
+
+        const results = await Promise.all(promises);
+        libres = results.filter(n => n !== null);
 
         status.innerText = "";
         if (libres.length === 0) {
-            resultsDiv.innerHTML = "<div class='aucun'>Aucune salle libre sur ce créneau ❌</div>";
+            resultsDiv.innerHTML = "<div class='aucun'>Aucune salle trouvée libre ❌</div>";
         } else {
             libres.forEach(nom => {
-                resultsDiv.innerHTML += `<div class="result-item"><span>${nom}</span><span>✅</span></div>`;
+                resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${nom}</span><span class="badge">LIBRE</span></div>`;
             });
         }
     }
 
     function isOccupied(icsData, dateR, startR, endR) {
+        if (!icsData) return false;
         const events = icsData.split("BEGIN:VEVENT");
         for (let event of events) {
             const startEv = event.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{6})/);
             const endEv = event.match(/DTEND[:;](?:.*T)?(\d{8}T\d{6})/);
             
             if (startEv && endEv) {
-                const s = startEv[1].replace("T", "");
-                const e = endEv[1].replace("T", "");
-                if (s.slice(0,8) === dateR) {
-                    const ts = s.slice(8);
-                    const te = e.slice(8);
-                    if (ts < endR && te > startR) return true;
+                // iCal est en UTC. En France (Hiver) = UTC+1
+                let s = startEv[1];
+                let e = endEv[1];
+                
+                // Extraction et correction +1h
+                let hS = (parseInt(s.slice(9, 11)) + 1).toString().padStart(2, '0') + s.slice(11, 15);
+                let hE = (parseInt(e.slice(9, 11)) + 1).toString().padStart(2, '0') + e.slice(11, 15);
+                
+                if (s.slice(0, 8) === dateR) {
+                    if (hS < endR && hE > startR) return true;
                 }
             }
         }
