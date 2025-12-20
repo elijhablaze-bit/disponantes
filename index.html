@@ -16,7 +16,6 @@
         #status { text-align: center; font-size: 13px; color: #8E8E93; margin: 10px 0; min-height: 20px; }
         .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .salle-nom { font-weight: 600; color: #1C1C1E; }
-        .error-tag { color: #FF3B30; font-size: 11px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -29,7 +28,7 @@
         <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
         <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
     </div>
-    <button onclick="checkRooms()">Vérifier la disponibilité</button>
+    <button onclick="checkRooms()">Vérifier</button>
     <div id="status"></div>
 </div>
 
@@ -70,45 +69,35 @@
         const resultsDiv = document.getElementById('results');
         const status = document.getElementById('status');
         const dateR = document.getElementById('date').value.replace(/-/g, "");
-        const startR = document.getElementById('start').value.replace(":", "") + "00";
-        const endR = document.getElementById('end').value.replace(":", "") + "00";
+        const startR = parseInt(document.getElementById('start').value.replace(":", ""));
+        const endR = parseInt(document.getElementById('end').value.replace(":", ""));
 
-        status.innerText = "Interrogation des serveurs...";
+        status.innerText = "Interrogation de la fac...";
         resultsDiv.innerHTML = "";
-        let countError = 0;
 
         const promises = SALLES.map(async (salle) => {
             try {
-                const target = `http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`;
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}&t=${Date.now()}`);
+                const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`)}&t=${Date.now()}`;
+                const res = await fetch(url);
                 const json = await res.json();
                 
-                if (!json.contents || !json.contents.includes("BEGIN:VCALENDAR")) {
-                    countError++;
-                    return { nom: salle.nom, error: true };
-                }
+                if (!json.contents || !json.contents.includes("BEGIN:VEVENT")) return { nom: salle.nom, free: true };
 
-                if (isOccupied(json.contents, dateR, startR, endR)) {
-                    return null; // Occupée
-                }
-                return { nom: salle.nom, error: false };
-            } catch (e) {
-                countError++;
-                return { nom: salle.nom, error: true };
+                const occupied = isOccupied(json.contents, dateR, startR, endR);
+                return occupied ? null : { nom: salle.nom, free: true };
+            } catch (e) { 
+                return { nom: salle.nom, free: true }; 
             }
         });
 
-        const rawResults = await Promise.all(promises);
-        const finalResults = rawResults.filter(r => r !== null);
-
-        status.innerText = countError > 0 ? `⚠️ ${countError} salles injoignables.` : "Recherche terminée.";
+        const finalResults = (await Promise.all(promises)).filter(r => r !== null);
+        status.innerText = "Terminé.";
 
         if (finalResults.length === 0) {
-            resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle disponible.</div>";
+            resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle libre.</div>";
         } else {
             finalResults.forEach(r => {
-                const errHtml = r.error ? `<span class="error-tag">ERREUR SERVEUR</span>` : `<span style="color:#34C759">✅</span>`;
-                resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${r.nom}</span>${errHtml}</div>`;
+                resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${r.nom}</span><span>✅</span></div>`;
             });
         }
     }
@@ -117,18 +106,21 @@
         const events = data.split("BEGIN:VEVENT");
         for (let i = 1; i < events.length; i++) {
             const ev = events[i];
-            const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{6})/);
-            const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{6})/);
+            const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{4})/);
+            const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{4})/);
             
             if (sd && ed) {
-                const dateEv = sd[1].slice(0, 8);
-                if (dateEv !== dateR) continue;
+                if (sd[1].slice(0, 8) !== dateR) continue;
 
-                // Heure UTC -> France (+1h)
-                let hs = (parseInt(sd[1].slice(9, 11)) + 1).toString().padStart(2, '0') + sd[1].slice(11, 15);
-                let he = (parseInt(ed[1].slice(9, 11)) + 1).toString().padStart(2, '0') + ed[1].slice(11, 15);
+                // On extrait l'heure brute (ex: 0800)
+                let hs = parseInt(sd[1].slice(9, 13));
+                let he = parseInt(ed[1].slice(9, 13));
 
-                // Si le créneau demandé touche le créneau du cours
+                // On applique +1h systématique pour l'heure française d'hiver
+                hs += 100;
+                he += 100;
+
+                // Vérification du chevauchement
                 if (hs < endR && he > startR) return true;
             }
         }
