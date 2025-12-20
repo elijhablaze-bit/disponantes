@@ -4,32 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Salles libres</title>
-    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/calendar--v1.png">
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h1 { font-size: 24px; margin: 0 0 15px 0; text-align: center; font-weight: 700; }
-        label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
-        #status { text-align: center; font-size: 14px; color: #8E8E93; margin: 10px 0; min-height: 20px; }
-        .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .salle-nom { font-weight: 600; color: #1C1C1E; }
+        h1 { font-size: 22px; text-align: center; margin-bottom: 20px; font-weight: 700; }
+        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; }
+        button:disabled { background: #AEAEB2; }
+
+        /* Style de la barre de progression */
+        .progress-container { width: 100%; background: #E5E5EA; border-radius: 10px; height: 10px; margin: 15px 0; display: none; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s ease; }
+        #status { text-align: center; font-size: 13px; color: #8E8E93; margin-bottom: 10px; }
+
+        .result-item { background: white; padding: 14px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 5px solid #34C759; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .salle-nom { font-weight: 600; }
     </style>
 </head>
 <body>
 
 <div class="card">
     <h1>Salles libres</h1>
-    <label>Date</label>
     <input type="date" id="date">
     <div style="display:flex; gap:10px;">
-        <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
-        <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
+        <input type="time" id="start" value="08:00">
+        <input type="time" id="end" value="10:00">
     </div>
-    <button onclick="checkRooms()">Vérifier la disponibilité</button>
-    <div id="status"></div>
+    
+    <div class="progress-container" id="p-cont">
+        <div class="progress-bar" id="p-bar"></div>
+    </div>
+    <div id="status">Sélectionnez vos horaires</div>
+
+    <button id="btn" onclick="checkRooms()">Vérifier la disponibilité</button>
 </div>
 
 <div id="results"></div>
@@ -66,39 +74,48 @@
     document.getElementById('date').valueAsDate = new Date();
 
     async function checkRooms() {
-        const resultsDiv = document.getElementById('results');
+        const resDiv = document.getElementById('results');
         const status = document.getElementById('status');
+        const bar = document.getElementById('p-bar');
+        const cont = document.getElementById('p-cont');
+        const btn = document.getElementById('btn');
+
         const dateR = document.getElementById('date').value.replace(/-/g, "");
         const startR = parseInt(document.getElementById('start').value.replace(":", ""));
         const endR = parseInt(document.getElementById('end').value.replace(":", ""));
 
-        status.innerText = "Synchronisation avec la fac...";
-        resultsDiv.innerHTML = "";
+        // Reset interface
+        btn.disabled = true;
+        resDiv.innerHTML = "";
+        cont.style.display = "block";
+        bar.style.width = "0%";
 
-        const promises = SALLES.map(async (salle) => {
+        let count = 0;
+        for (let salle of SALLES) {
+            count++;
+            // Mise à jour de la barre et du texte
+            const percent = (count / SALLES.length) * 100;
+            bar.style.width = percent + "%";
+            status.innerText = `Analyse : ${salle.nom} (${count}/${SALLES.length})`;
+            
             try {
-                // CHANGEMENT ICI : On utilise l'adresse directe "medecine"
                 const target = `https://edt.univ-nantes.fr/medecine/g${salle.code}.ics`;
                 const url = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}&t=${Date.now()}`;
                 
                 const res = await fetch(url);
                 const json = await res.json();
                 
-                // On vérifie que le fichier n'est pas vide (plus de 200 car.)
-                if (json.contents && json.contents.length > 200) {
-                    if (isOccupied(json.contents, dateR, startR, endR)) return null;
+                if (json.contents && json.contents.length > 500) {
+                    if (!isOccupied(json.contents, dateR, startR, endR)) {
+                        resDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${salle.nom}</span><span>✅</span></div>`;
+                    }
                 }
-                return salle.nom;
-            } catch (e) { return null; }
-        });
+            } catch (e) { console.error(e); }
+        }
 
-        const results = await Promise.all(promises);
-        const libres = results.filter(n => n !== null);
-
-        status.innerText = "Recherche terminée.";
-        libres.forEach(nom => {
-            resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${nom}</span><span style="color:#34C759">✅</span></div>`;
-        });
+        status.innerText = "Recherche terminée !";
+        btn.disabled = false;
+        setTimeout(() => { cont.style.display = "none"; }, 2000);
     }
 
     function isOccupied(data, dateR, startR, endR) {
@@ -107,7 +124,6 @@
             const ev = events[i];
             const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{4})/);
             const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{4})/);
-            
             if (sd && ed) {
                 if (sd[1].slice(0, 8) === dateR) {
                     let hs = parseInt(sd[1].slice(9, 13)) + 100;
