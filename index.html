@@ -3,38 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Salles Libres</title>
+    <title>Salles libres</title>
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/calendar--v1.png">
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 20px; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h1 { font-size: 22px; margin: 0 0 20px 0; color: #000; text-align: center; }
+        h1 { font-size: 24px; margin: 0 0 20px 0; color: #000; text-align: center; font-weight: 700; }
         label { display: block; font-size: 14px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
         input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; -webkit-appearance: none; }
         button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
+        button:active { opacity: 0.7; }
         .result-item { background: #E5E5EA; padding: 15px; border-radius: 10px; margin-top: 10px; display: flex; justify-content: space-between; font-weight: 500; }
-        #status { text-align: center; font-size: 14px; color: var(--primary); margin-top: 10px; min-height: 20px; }
+        #status { text-align: center; font-size: 14px; color: var(--primary); margin-top: 10px; min-height: 20px; font-weight: 500; }
+        .aucun { text-align: center; color: #8E8E93; padding: 20px; font-style: italic; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Salles Libres Bias</h1>
+    <h1>Salles libres</h1>
     <label>Date</label>
     <input type="date" id="date">
     <div style="display:flex; gap:10px;">
         <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
         <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
     </div>
-    <button onclick="checkRooms()">Vérifier</button>
+    <button onclick="checkRooms()">Vérifier la disponibilité</button>
     <div id="status"></div>
 </div>
 
 <div id="results"></div>
 
 <script>
-    // Configuration des salles (Même liste que sur PC)
+    // Liste des amphis Bias 2
     const SALLES = [
         {nom: "Amphi A", id: "109269"},
         {nom: "Amphi B", id: "109270"},
@@ -50,14 +52,13 @@
         const hStart = document.getElementById('start').value.replace(":", "") + "00";
         const hEnd = document.getElementById('end').value.replace(":", "") + "00";
 
-        status.innerText = "Recherche en cours...";
+        status.innerText = "Consultation de l'EDT...";
         resultsDiv.innerHTML = "";
 
         let libres = [];
 
         for (let salle of SALLES) {
             try {
-                // Utilisation d'un proxy pour éviter les blocages CORS sur mobile
                 const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`https://edt.univ-nantes.fr/medecine/g${salle.id}.ics`)}`;
                 const response = await fetch(url);
                 const data = await response.json();
@@ -65,12 +66,14 @@
                 if (!isOccupied(data.contents, dateRech, hStart, hEnd)) {
                     libres.push(salle.nom);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) { 
+                console.error(e); 
+            }
         }
 
         status.innerText = "";
         if (libres.length === 0) {
-            resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle libre ❌</div>";
+            resultsDiv.innerHTML = "<div class='aucun'>Aucune salle libre sur ce créneau ❌</div>";
         } else {
             libres.forEach(nom => {
                 resultsDiv.innerHTML += `<div class="result-item"><span>${nom}</span><span>✅</span></div>`;
@@ -79,7 +82,6 @@
     }
 
     function isOccupied(icsData, dateR, startR, endR) {
-        // Logique simplifiée pour analyser le fichier iCal directement
         const events = icsData.split("BEGIN:VEVENT");
         for (let event of events) {
             const startEv = event.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{6})/);
@@ -88,7 +90,6 @@
             if (startEv && endEv) {
                 const s = startEv[1].replace("T", "");
                 const e = endEv[1].replace("T", "");
-                // Vérification du chevauchement
                 if (s.slice(0,8) === dateR) {
                     const ts = s.slice(8);
                     const te = e.slice(8);
