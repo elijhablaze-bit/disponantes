@@ -2,129 +2,70 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Salles libres</title>
-    <link rel="apple-touch-icon" href="https://img.icons8.com/color/192/calendar--v1.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Salles</title>
     <style>
-        :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h1 { font-size: 24px; margin: 0 0 15px 0; text-align: center; font-weight: 700; }
-        label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; }
-        #status { text-align: center; font-size: 13px; color: #8E8E93; margin: 10px 0; min-height: 20px; }
-        .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .salle-nom { font-weight: 600; color: #1C1C1E; }
+        body { font-family: sans-serif; padding: 15px; background: #f0f2f5; }
+        .card { background: white; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+        #debug-log { background: #000; color: #0f0; padding: 10px; font-family: monospace; font-size: 10px; height: 150px; overflow: auto; border-radius: 5px; margin-top: 10px; }
+        .salle { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Salles libres</h1>
-    <label>Date</label>
-    <input type="date" id="date">
-    <div style="display:flex; gap:10px;">
-        <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
-        <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
-    </div>
-    <button onclick="checkRooms()">Vérifier</button>
-    <div id="status"></div>
+    <h3>🔍 Mode Diagnostic</h3>
+    <button onclick="checkWithDebug()" style="width:100%; padding:15px; background:#007AFF; color:white; border:none; border-radius:10px;">Lancer le Test</button>
+    <div id="debug-log">Attente du test...</div>
 </div>
 
-<div id="results"></div>
+<div id="results" class="card"></div>
 
 <script>
-    const SALLES = [
-        {"nom": "Bias 2 Amphi A", "code": "109269"}, {"nom": "Bias 2 Amphi B", "code": "109270"},
-        {"nom": "Bias 2 Amphi C", "code": "109271"}, {"nom": "Bias 2 Salle 004", "code": "109264"},
-        {"nom": "Bias 2 Salle 005", "code": "109265"}, {"nom": "Bias 2 Salle 006", "code": "109266"},
-        {"nom": "Bias 2 Salle 007", "code": "109267"}, {"nom": "Bias Amphi V. Ferré", "code": "109250"},
-        {"nom": "Bias Salle 051", "code": "109248"}, {"nom": "Bias Salle 052", "code": "109249"},
-        {"nom": "Bias Salle 117", "code": "109252"}, {"nom": "Bias Salle 121", "code": "109254"},
-        {"nom": "Bias Salle 161-122", "code": "109258"}, {"nom": "Bias Salle 162", "code": "109259"},
-        {"nom": "Bias Salle 163-164", "code": "109260"}, {"nom": "Bias Salle 165", "code": "109261"},
-        {"nom": "Bias Salle 166", "code": "109221"}, {"nom": "Bias Salle 167", "code": "109222"},
-        {"nom": "Bias Salle 205", "code": "109225"}, {"nom": "Bias Salle 207", "code": "109190"},
-        {"nom": "Bias Salle 208", "code": "109262"}, {"nom": "Bias Salle 211", "code": "109263"},
-        {"nom": "Bias Salle A442", "code": "109212"}, {"nom": "Veil Salle 201A", "code": "109228"},
-        {"nom": "Veil Salle 243", "code": "109278"}, {"nom": "Veil Salle 244", "code": "109233"},
-        {"nom": "Veil Salle 301A", "code": "109172"}, {"nom": "Veil Salle 301B", "code": "109234"},
-        {"nom": "Veil Salle 302", "code": "109186"}, {"nom": "Veil Salle 303", "code": "109187"},
-        {"nom": "Veil Salle 338", "code": "109188"}, {"nom": "Veil Salle 339", "code": "109173"},
-        {"nom": "Veil Salle 340", "code": "109174"}, {"nom": "Veil Salle 341", "code": "109175"},
-        {"nom": "Veil Salle 447", "code": "109176"}, {"nom": "Veil Salle 502", "code": "109177"},
-        {"nom": "Veil Salle 503", "code": "109178"}, {"nom": "Veil Salle 504", "code": "109179"},
-        {"nom": "Veil Salle 554", "code": "109180"}, {"nom": "Veil Salle 555", "code": "109181"},
-        {"nom": "Veil Amphi 1", "code": "109182"}, {"nom": "Veil Amphi 2", "code": "109183"},
-        {"nom": "Veil Amphi 3", "code": "109184"}, {"nom": "Veil Amphi 4", "code": "109185"},
-        {"nom": "Veil Amphi 5", "code": "109220"}, {"nom": "Veil Amphi 6", "code": "109235"},
-        {"nom": "Veil Amphi 7", "code": "109236"}, {"nom": "Veil Amphi 8", "code": "109174"},
-        {"nom": "Veil Amphi 9", "code": "109237"}
-    ];
+    const TEST_SALLE = {"nom": "Bias 2 Amphi A", "code": "109269"};
 
-    document.getElementById('date').valueAsDate = new Date();
-
-    async function checkRooms() {
-        const resultsDiv = document.getElementById('results');
-        const status = document.getElementById('status');
-        const dateR = document.getElementById('date').value.replace(/-/g, "");
-        const startR = parseInt(document.getElementById('start').value.replace(":", ""));
-        const endR = parseInt(document.getElementById('end').value.replace(":", ""));
-
-        status.innerText = "Interrogation de la fac...";
-        resultsDiv.innerHTML = "";
-
-        const promises = SALLES.map(async (salle) => {
-            try {
-                const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`)}&t=${Date.now()}`;
-                const res = await fetch(url);
-                const json = await res.json();
-                
-                if (!json.contents || !json.contents.includes("BEGIN:VEVENT")) return { nom: salle.nom, free: true };
-
-                const occupied = isOccupied(json.contents, dateR, startR, endR);
-                return occupied ? null : { nom: salle.nom, free: true };
-            } catch (e) { 
-                return { nom: salle.nom, free: true }; 
-            }
-        });
-
-        const finalResults = (await Promise.all(promises)).filter(r => r !== null);
-        status.innerText = "Terminé.";
-
-        if (finalResults.length === 0) {
-            resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle libre.</div>";
-        } else {
-            finalResults.forEach(r => {
-                resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${r.nom}</span><span>✅</span></div>`;
-            });
-        }
+    function log(msg) {
+        const d = document.getElementById('debug-log');
+        d.innerHTML += "> " + msg + "<br>";
+        d.scrollTop = d.scrollHeight;
     }
 
-    function isOccupied(data, dateR, startR, endR) {
-        const events = data.split("BEGIN:VEVENT");
-        for (let i = 1; i < events.length; i++) {
-            const ev = events[i];
-            const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{4})/);
-            const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{4})/);
+    async function checkWithDebug() {
+        const logDiv = document.getElementById('debug-log');
+        const resDiv = document.getElementById('results');
+        logDiv.innerHTML = "Début du test...<br>";
+        
+        const dateR = new Date().toISOString().split('T')[0].replace(/-/g, "");
+        log("Date testée : " + dateR);
+
+        try {
+            const url = `https://api.allorigins.win/get?url=${encodeURIComponent(`http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${TEST_SALLE.code}`)}&t=${Date.now()}`;
+            log("Appel du serveur fac...");
             
-            if (sd && ed) {
-                if (sd[1].slice(0, 8) !== dateR) continue;
-
-                // On extrait l'heure brute (ex: 0800)
-                let hs = parseInt(sd[1].slice(9, 13));
-                let he = parseInt(ed[1].slice(9, 13));
-
-                // On applique +1h systématique pour l'heure française d'hiver
-                hs += 100;
-                he += 100;
-
-                // Vérification du chevauchement
-                if (hs < endR && he > startR) return true;
+            const res = await fetch(url);
+            const json = await res.json();
+            
+            if (!json.contents) {
+                log("ERREUR : Le serveur n'a renvoyé aucun contenu.");
+                return;
             }
+
+            log("Contenu reçu ! Taille : " + json.contents.length + " caractères");
+            
+            if (json.contents.includes("BEGIN:VEVENT")) {
+                log("OK : Des cours ont été trouvés dans le fichier.");
+                // On affiche les 200 premiers caractères pour voir le format de l'heure
+                log("Extrait : " + json.contents.substring(json.contents.indexOf("DTSTART"), json.contents.indexOf("DTSTART")+40));
+            } else {
+                log("ALERTE : Fichier reçu mais VIDE de cours.");
+            }
+
+            // Test de filtrage
+            resDiv.innerHTML = "Analyse terminée. Regarde les logs verts.";
+
+        } catch (e) {
+            log("ERREUR FATALE : " + e.message);
         }
-        return false;
     }
 </script>
 </body>
