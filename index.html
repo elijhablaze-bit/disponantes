@@ -6,42 +6,51 @@
     <title>Salles Libres Nantes</title>
     <style>
         :root { --primary: #007AFF; --bg: #F2F2F7; --bias2: #5856D6; --bias: #FF9500; --veil: #AF52DE; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 50px; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h1 { font-size: 22px; text-align: center; margin-bottom: 20px; font-weight: 700; color: #1C1C1E; }
-        label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
-        button:disabled { background: #AEAEB2; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 50px; color: #1C1C1E; }
         
-        .progress-container { width: 100%; background: #E5E5EA; border-radius: 5px; height: 6px; margin-bottom: 10px; display: none; overflow: hidden; }
-        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
-        #status { text-align: center; font-size: 13px; color: #8E8E93; margin-bottom: 15px; min-height: 18px; }
+        /* Formulaire */
+        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin-bottom: 25px; border: 1px solid rgba(0,0,0,0.05); }
+        h1 { font-size: 24px; text-align: center; margin: 0 0 20px 0; font-weight: 800; letter-spacing: -0.5px; }
+        label { display: block; font-size: 11px; font-weight: 700; color: #8E8E93; margin-bottom: 5px; text-transform: uppercase; margin-left: 5px; }
+        input { width: 100%; padding: 14px; border: 1px solid #E5E5EA; border-radius: 12px; font-size: 16px; margin-bottom: 12px; box-sizing: border-box; background: #F9F9F9; transition: all 0.2s; }
+        input:focus { border-color: var(--primary); background: white; outline: none; }
+        
+        /* Bouton et Progress Bar */
+        button { width: 100%; background: var(--primary); color: white; border: none; padding: 16px; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; transition: transform 0.1s, opacity 0.2s; }
+        button:active { transform: scale(0.98); opacity: 0.9; }
+        button:disabled { background: #D1D1D6; }
+        
+        .progress-container { width: 100%; background: #E5E5EA; border-radius: 10px; height: 4px; margin: 15px 0; display: none; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s; }
+        #status { text-align: center; font-size: 12px; color: #8E8E93; margin-bottom: 10px; font-weight: 500; }
 
-        .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 10px 5px; display: flex; align-items: center; }
-        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; }
-        .building-container { display: none; margin-bottom: 20px; } /* Caché si vide au début */
+        /* Sections et Résultats */
+        .section-title { font-size: 14px; font-weight: 700; margin: 25px 0 12px 10px; color: #8E8E93; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; }
+        .dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
+        .building-container { display: none; margin-bottom: 25px; }
         
-        .result-item { background: white; padding: 14px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        .salle-nom { font-weight: 500; color: #1C1C1E; }
-        .badge-libre { color: #34C759; font-weight: bold; font-size: 18px; }
+        .result-item { background: white; padding: 16px; border-radius: 16px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.04); animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1); border: 1px solid rgba(0,0,0,0.02); }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .salle-nom { font-weight: 600; font-size: 17px; color: #000; }
+        .check { color: #34C759; font-size: 18px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Recherche de Salles</h1>
+    <h1>Salles Libres</h1>
     <label>Date</label>
     <input type="date" id="date">
-    <div style="display:flex; gap:10px;">
+    <div style="display:flex; gap:12px;">
         <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
         <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
     </div>
     
+    <div id="status">Sélectionnez vos horaires</div>
     <div class="progress-container" id="p-cont"><div class="progress-bar" id="p-bar"></div></div>
-    <div id="status">Prêt</div>
-    <button id="btn" onclick="checkRooms()">Vérifier les disponibilités</button>
+    
+    <button id="btn" onclick="checkRooms()">Rechercher</button>
 </div>
 
 <div id="results">
@@ -54,12 +63,13 @@
         <div class="list"></div>
     </div>
     <div id="sect-Veil" class="building-container">
-        <div class="section-title"><span class="dot" style="background:var(--veil)"></span>Bâtiment Simone Veil</div>
+        <div class="section-title"><span class="dot" style="background:var(--veil)"></span>Simone Veil</div>
         <div class="list"></div>
     </div>
 </div>
 
 <script>
+    // Liste des salles (Gardée telle quelle pour ne pas casser la logique de code)
     const SALLES = [
         {"nom": "Bias 2 Amphi A", "code": "109269"}, {"nom": "Bias 2 Amphi B", "code": "109270"},
         {"nom": "Bias 2 Amphi C", "code": "109271"}, {"nom": "Bias 2 Salle 004", "code": "109264"},
@@ -100,12 +110,10 @@
         const startR = parseInt(document.getElementById('start').value.replace(":", ""));
         const endR = parseInt(document.getElementById('end').value.replace(":", ""));
 
-        // Reset
         btn.disabled = true;
         pCont.style.display = "block";
         pBar.style.width = "0%";
         
-        // Cacher et vider les listes
         document.querySelectorAll('.building-container').forEach(c => {
             c.style.display = 'none';
             c.querySelector('.list').innerHTML = '';
@@ -114,7 +122,7 @@
         for (let i = 0; i < SALLES.length; i++) {
             const salle = SALLES[i];
             pBar.style.width = ((i + 1) / SALLES.length * 100) + "%";
-            status.innerText = `Analyse : ${salle.nom}`;
+            status.innerText = `Recherche : ${i+1}/${SALLES.length}`;
 
             try {
                 const target = `http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`;
@@ -128,24 +136,34 @@
             } catch (e) {}
         }
 
-        status.innerText = "Recherche terminée.";
+        status.innerText = "Analyse terminée";
         btn.disabled = false;
-        setTimeout(() => { pCont.style.display = "none"; }, 2000);
+        setTimeout(() => { pCont.style.display = "none"; }, 1500);
     }
 
-    function addRoomToUI(nom) {
+    function addRoomToUI(nomBrut) {
         let containerId = "";
-        if (nom.startsWith("Bias 2")) containerId = "sect-Bias2";
-        else if (nom.toLowerCase().startsWith("veil")) containerId = "sect-Veil";
-        else if (nom.toLowerCase().startsWith("bias")) containerId = "sect-Bias";
+        let nomNettoye = nomBrut;
+
+        // --- NETTOYAGE ET TRI ---
+        if (nomBrut.startsWith("Bias 2")) {
+            containerId = "sect-Bias2";
+            nomNettoye = nomBrut.replace("Bias 2 ", "");
+        } else if (nomBrut.toLowerCase().startsWith("veil")) {
+            containerId = "sect-Veil";
+            nomNettoye = nomBrut.replace(/Veil /i, "");
+        } else if (nomBrut.toLowerCase().startsWith("bias")) {
+            containerId = "sect-Bias";
+            nomNettoye = nomBrut.replace(/Bias /i, "");
+        }
 
         if (containerId) {
             const container = document.getElementById(containerId);
-            container.style.display = 'block'; // On affiche le bâtiment dès qu'il a une salle
+            container.style.display = 'block';
             container.querySelector('.list').innerHTML += `
                 <div class="result-item">
-                    <span class="salle-nom">${nom}</span>
-                    <span class="badge-libre">✅</span>
+                    <span class="salle-nom">${nomNettoye}</span>
+                    <span class="check">􀁣</span>
                 </div>`;
         }
     }
