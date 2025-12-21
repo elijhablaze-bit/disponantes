@@ -1,148 +1,49 @@
 <!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Salles Libres Nantes</title>
-    <style>
-        :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        h1 { font-size: 22px; text-align: center; margin-bottom: 20px; font-weight: 700; color: #1C1C1E; }
-        label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; -webkit-appearance: none; }
-        button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
-        button:disabled { background: #AEAEB2; }
+<html>
+<body style="font-family:sans-serif; padding:15px; background:#F2F2F7;">
+    <div style="background:white; padding:20px; border-radius:15px; box-shadow:0 4px 10px rgba(0,0,0,0.1);">
+        <h2 style="text-align:center;">Diagnostic Étape 5</h2>
+        <button onclick="superScan()" style="width:100%; padding:15px; background:#34C759; color:white; border:none; border-radius:10px; font-weight:bold;">Scanner l'Amphi A</button>
         
-        /* Progression */
-        .progress-container { width: 100%; background: #E5E5EA; border-radius: 5px; height: 6px; margin-bottom: 10px; display: none; overflow: hidden; }
-        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s; }
-        #status { text-align: center; font-size: 13px; color: #8E8E93; margin-bottom: 15px; min-height: 18px; }
-
-        .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .salle-nom { font-weight: 600; color: #1C1C1E; }
-    </style>
-</head>
-<body>
-
-<div class="card">
-    <h1>Salles libres</h1>
-    <label>Date de recherche</label>
-    <input type="date" id="date">
-    <div style="display:flex; gap:10px;">
-        <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
-        <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
+        <div id="console" style="margin-top:20px; background:black; color:#0f0; padding:15px; font-family:monospace; font-size:11px; border-radius:5px; white-space:pre-wrap; min-height:300px;">
+            Appuyez pour voir ce que l'iPhone reçoit vraiment...
+        </div>
     </div>
-    
-    <div class="progress-container" id="p-cont"><div class="progress-bar" id="p-bar"></div></div>
-    <div id="status">Prêt pour l'analyse</div>
-    
-    <button id="btn" onclick="checkRooms()">Vérifier la disponibilité</button>
-</div>
-
-<div id="results"></div>
 
 <script>
-    // Liste synchronisée avec ton importer.py
-    const SALLES = [
-        {"nom": "Bias 2 Amphi A", "code": "109269"}, {"nom": "Bias 2 Amphi B", "code": "109270"},
-        {"nom": "Bias 2 Amphi C", "code": "109271"}, {"nom": "Bias 2 Salle 004", "code": "109264"},
-        {"nom": "Bias 2 Salle 005", "code": "109265"}, {"nom": "Bias 2 Salle 006", "code": "109266"},
-        {"nom": "Bias 2 Salle 007", "code": "109267"}, {"nom": "Bias Amphi V. Ferré", "code": "109250"},
-        {"nom": "Bias Salle 051", "code": "109248"}, {"nom": "Bias Salle 052", "code": "109249"},
-        {"nom": "Bias Salle 117", "code": "109252"}, {"nom": "Bias Salle 121", "code": "109254"},
-        {"nom": "Bias Salle 161-122", "code": "109258"}, {"nom": "Bias Salle 162", "code": "109259"},
-        {"nom": "Bias Salle 163-164", "code": "109260"}, {"nom": "Bias Salle 165", "code": "109261"},
-        {"nom": "Bias Salle 166", "code": "109221"}, {"nom": "Bias Salle 167", "code": "109222"},
-        {"nom": "Bias Salle 205", "code": "109225"}, {"nom": "Bias Salle 207", "code": "109190"},
-        {"nom": "Bias Salle 208", "code": "109262"}, {"nom": "Bias Salle 211", "code": "109263"},
-        {"nom": "Bias Salle A442", "code": "109212"}, {"nom": "Veil Salle 201A", "code": "109228"},
-        {"nom": "Veil Salle 243", "code": "109278"}, {"nom": "Veil Salle 244", "code": "109233"},
-        {"nom": "Veil Salle 301A", "code": "109172"}, {"nom": "Veil Salle 301B", "code": "109234"},
-        {"nom": "Veil Salle 302", "code": "109186"}, {"nom": "Veil Salle 303", "code": "109187"},
-        {"nom": "Veil Salle 338", "code": "109188"}, {"nom": "Veil Salle 339", "code": "109173"},
-        {"nom": "Veil Salle 340", "code": "109174"}, {"nom": "Veil Salle 341", "code": "109175"},
-        {"nom": "Veil Salle 447", "code": "109176"}, {"nom": "Veil Salle 502", "code": "109177"},
-        {"nom": "Veil Salle 503", "code": "109178"}, {"nom": "Veil Salle 504", "code": "109179"},
-        {"nom": "Veil Salle 554", "code": "109180"}, {"nom": "Veil Salle 555", "code": "109181"},
-        {"nom": "Veil Amphi 1", "code": "109182"}, {"nom": "Veil Amphi 2", "code": "109183"},
-        {"nom": "Veil Amphi 3", "code": "109184"}, {"nom": "Veil Amphi 4", "code": "109185"},
-        {"nom": "Veil Amphi 5", "code": "109220"}, {"nom": "Veil Amphi 6", "code": "109235"},
-        {"nom": "Veil Amphi 7", "code": "109236"}, {"nom": "Veil Amphi 8", "code": "109174"},
-        {"nom": "Veil Amphi 9", "code": "109237"}
-    ];
+async function superScan() {
+    const out = document.getElementById('console');
+    out.innerHTML = "--- DÉBUT DU SUPER SCAN ---\n";
+    
+    // Test avec l'URL v2 (celle de ton PC)
+    const target = `https://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=109269`;
+    
+    // On essaye un Proxy différent (Corsproxy.io) pour voir si AllOrigins sature
+    const proxy = `https://corsproxy.io/?`;
+    const url = proxy + encodeURIComponent(target);
 
-    document.getElementById('date').valueAsDate = new Date();
+    out.innerHTML += "1. Tentative via Proxy de secours...\n";
 
-    async function checkRooms() {
-        const btn = document.getElementById('btn');
-        const status = document.getElementById('status');
-        const pBar = document.getElementById('p-bar');
-        const pCont = document.getElementById('p-cont');
-        const resultsDiv = document.getElementById('results');
-
-        const dateR = document.getElementById('date').value.replace(/-/g, "");
-        const startR = parseInt(document.getElementById('start').value.replace(":", ""));
-        const endR = parseInt(document.getElementById('end').value.replace(":", ""));
-
-        // Initialisation
-        btn.disabled = true;
-        pCont.style.display = "block";
-        resultsDiv.innerHTML = "";
-        let count = 0;
-
-        for (let salle of SALLES) {
-            count++;
-            const progress = (count / SALLES.length) * 100;
-            pBar.style.width = progress + "%";
-            status.innerText = `Analyse : ${salle.nom} (${count}/${SALLES.length})`;
-
-            try {
-                // Adresse identique au script Python PC
-                const target = `http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`;
-                const url = `https://api.allorigins.win/get?url=${encodeURIComponent(target)}&t=${Date.now()}`;
-                
-                const res = await fetch(url);
-                const json = await res.json();
-                
-                // On vérifie que le fichier contient bien des événements
-                if (json.contents && json.contents.includes("BEGIN:VEVENT")) {
-                    if (!isOccupied(json.contents, dateR, startR, endR)) {
-                        resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${salle.nom}</span><span>✅</span></div>`;
-                    }
-                } else {
-                    // Si le fichier est vide (cas du samedi parfois ou erreur serveur)
-                    // On considère la salle libre par défaut ou on l'ignore. Ici on l'affiche.
-                    resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${salle.nom}</span><span>✅</span></div>`;
-                }
-            } catch (e) { console.error(e); }
+    try {
+        const res = await fetch(url);
+        const text = await res.text();
+        
+        out.innerHTML += "2. Taille reçue : " + text.length + " caractères\n";
+        out.innerHTML += "3. Début du contenu :\n\n";
+        
+        // On affiche les 300 premiers caractères pour voir si c'est du calendrier ou une erreur
+        out.innerHTML += text.substring(0, 400).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        
+        if (text.includes("BEGIN:VEVENT")) {
+            out.innerHTML += "\n\n✅ SUCCÈS : Le calendrier contient des cours !";
+        } else {
+            out.innerHTML += "\n\n❌ ÉCHEC : Pas de cours détectés dans ce texte.";
         }
 
-        status.innerText = "Recherche terminée.";
-        btn.disabled = false;
-        setTimeout(() => { pCont.style.display = "none"; }, 2000);
+    } catch (e) {
+        out.innerHTML += "\nERREUR : " + e.message;
     }
-
-    function isOccupied(data, dateR, startR, endR) {
-        const events = data.split("BEGIN:VEVENT");
-        for (let i = 1; i < events.length; i++) {
-            const ev = events[i];
-            const sd = ev.match(/DTSTART[:;](?:.*T)?(\d{8}T\d{4})/);
-            const ed = ev.match(/DTEND[:;](?:.*T)?(\d{8}T\d{4})/);
-            
-            if (sd && ed) {
-                if (sd[1].slice(0, 8) === dateR) {
-                    // Heure UTC -> France (+100 = +1h)
-                    let hs = parseInt(sd[1].slice(9, 13)) + 100;
-                    let he = parseInt(ed[1].slice(9, 13)) + 100;
-                    
-                    // Si le cours chevauche le créneau
-                    if (hs < endR && he > startR) return true;
-                }
-            }
-        }
-        return false;
-    }
+}
 </script>
 </body>
 </html>
