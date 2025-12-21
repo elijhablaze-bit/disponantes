@@ -5,34 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Salles Libres Nantes</title>
     <style>
-        :root { --primary: #007AFF; --bg: #F2F2F7; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        :root { --primary: #007AFF; --bg: #F2F2F7; --bias2: #5856D6; --bias: #FF9500; --veil: #AF52DE; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; padding-bottom: 50px; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { font-size: 22px; text-align: center; margin-bottom: 20px; font-weight: 700; color: #1C1C1E; }
         label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
         input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
         button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
         button:disabled { background: #AEAEB2; }
+        
+        /* Barre de progression */
         .progress-container { width: 100%; background: #E5E5EA; border-radius: 5px; height: 6px; margin-bottom: 10px; display: none; overflow: hidden; }
         .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s; }
         #status { text-align: center; font-size: 13px; color: #8E8E93; margin-bottom: 15px; min-height: 18px; }
-        .result-item { background: white; padding: 15px; border-radius: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; border-left: 5px solid #34C759; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .salle-nom { font-weight: 600; }
+
+        /* Style des Bâtiments */
+        .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 10px 5px; display: flex; align-items: center; }
+        .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; }
+        
+        .result-item { background: white; padding: 14px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .salle-nom { font-weight: 500; color: #1C1C1E; }
+        .badge-libre { color: #34C759; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>Salles libres</h1>
+    <h1>Recherche de Salles</h1>
     <label>Date</label>
     <input type="date" id="date">
     <div style="display:flex; gap:10px;">
         <div style="flex:1"><label>Début</label><input type="time" id="start" value="08:00"></div>
         <div style="flex:1"><label>Fin</label><input type="time" id="end" value="10:00"></div>
     </div>
+    
     <div class="progress-container" id="p-cont"><div class="progress-bar" id="p-bar"></div></div>
     <div id="status">Prêt</div>
-    <button id="btn" onclick="checkRooms()">Vérifier la disponibilité</button>
+    <button id="btn" onclick="checkRooms()">Vérifier les disponibilités</button>
 </div>
 
 <div id="results"></div>
@@ -42,7 +51,7 @@
         {"nom": "Bias 2 Amphi A", "code": "109269"}, {"nom": "Bias 2 Amphi B", "code": "109270"},
         {"nom": "Bias 2 Amphi C", "code": "109271"}, {"nom": "Bias 2 Salle 004", "code": "109264"},
         {"nom": "Bias 2 Salle 005", "code": "109265"}, {"nom": "Bias 2 Salle 006", "code": "109266"},
-        {"nom": "Bias 2 Salle 007", "code": "109267"}, {"nom": "Bias Amphi V. Ferré", "code": "109250"},
+        {"nom": "Bias 2 Salle 007", "code": "109267"}, {"nom": "Bias Amphi Virginie Ferré", "code": "109250"},
         {"nom": "Bias Salle 051", "code": "109248"}, {"nom": "Bias Salle 052", "code": "109249"},
         {"nom": "Bias Salle 117", "code": "109252"}, {"nom": "Bias Salle 121", "code": "109254"},
         {"nom": "Bias Salle 161-122", "code": "109258"}, {"nom": "Bias Salle 162", "code": "109259"},
@@ -82,6 +91,8 @@
         btn.disabled = true;
         pCont.style.display = "block";
         resultsDiv.innerHTML = "";
+        
+        let buildingData = { "Bias 2": [], "Bias": [], "Veil": [] };
 
         for (let i = 0; i < SALLES.length; i++) {
             const salle = SALLES[i];
@@ -90,28 +101,53 @@
 
             try {
                 const target = `http://edt-v2.univ-nantes.fr/calendar/ics?timetables[0]=${salle.code}`;
-                const url = `https://corsproxy.io/?${encodeURIComponent(target)}`;
-                
+                const url = `https://corsproxy.io/?${encodeURIComponent(target)}&t=${Date.now()}`;
                 const res = await fetch(url);
                 const text = await res.text();
                 
-                if (text.includes("BEGIN:VEVENT")) {
-                    if (!isOccupied(text, dateR, startR, endR)) {
-                        resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${salle.nom}</span><span>✅</span></div>`;
-                    }
-                } else {
-                    // Si pas de cours du tout dans le fichier, la salle est libre
-                    resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${salle.nom}</span><span>✅</span></div>`;
+                if (!isOccupied(text, dateR, startR, endR)) {
+                    // Trier dans le bon bâtiment
+                    if (salle.nom.startsWith("Bias 2")) buildingData["Bias 2"].push(salle.nom);
+                    else if (salle.nom.toLowerCase().startsWith("veil")) buildingData["Veil"].push(salle.nom);
+                    else if (salle.nom.toLowerCase().startsWith("bias")) buildingData["Bias"].push(salle.nom);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         }
 
-        status.innerText = "Terminé";
+        renderResults(buildingData);
+        status.innerText = "Recherche terminée.";
         btn.disabled = false;
         setTimeout(() => { pCont.style.display = "none"; }, 2000);
     }
 
+    function renderResults(data) {
+        const resultsDiv = document.getElementById('results');
+        const order = [
+            { key: "Bias 2", color: "var(--bias2)" },
+            { key: "Bias", color: "var(--bias)" },
+            { key: "Veil", color: "var(--veil)" }
+        ];
+
+        let hasAny = false;
+        order.forEach(group => {
+            if (data[group.key].length > 0) {
+                hasAny = true;
+                resultsDiv.innerHTML += `
+                    <div class="section-title">
+                        <span class="dot" style="background:${group.color}"></span>
+                        Bâtiment ${group.key}
+                    </div>`;
+                data[group.key].forEach(nom => {
+                    resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${nom}</span><span class="badge-libre">✅</span></div>`;
+                });
+            }
+        });
+
+        if (!hasAny) resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle libre trouvée.</div>";
+    }
+
     function isOccupied(data, dateR, startR, endR) {
+        if (!data.includes("BEGIN:VEVENT")) return false;
         const events = data.split("BEGIN:VEVENT");
         for (let i = 1; i < events.length; i++) {
             const ev = events[i];
