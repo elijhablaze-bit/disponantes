@@ -10,20 +10,20 @@
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h1 { font-size: 22px; text-align: center; margin-bottom: 20px; font-weight: 700; color: #1C1C1E; }
         label { display: block; font-size: 13px; font-weight: 600; color: #8E8E93; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
+        input { width: 100%; padding: 12px; border: 1px solid #D1D1D6; border-radius: 10px; font-size: 16px; margin-bottom: 10px; box-sizing: border-box; }
         button { width: 100%; background: var(--primary); color: white; border: none; padding: 15px; border-radius: 12px; font-size: 17px; font-weight: 600; cursor: pointer; }
         button:disabled { background: #AEAEB2; }
         
-        /* Barre de progression */
         .progress-container { width: 100%; background: #E5E5EA; border-radius: 5px; height: 6px; margin-bottom: 10px; display: none; overflow: hidden; }
-        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.3s; }
+        .progress-bar { width: 0%; height: 100%; background: var(--primary); transition: width 0.2s; }
         #status { text-align: center; font-size: 13px; color: #8E8E93; margin-bottom: 15px; min-height: 18px; }
 
-        /* Style des Bâtiments */
         .section-title { font-size: 18px; font-weight: 700; margin: 20px 0 10px 5px; display: flex; align-items: center; }
         .dot { height: 12px; width: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; }
+        .building-container { display: none; margin-bottom: 20px; } /* Caché si vide au début */
         
-        .result-item { background: white; padding: 14px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .result-item { background: white; padding: 14px; border-radius: 12px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
         .salle-nom { font-weight: 500; color: #1C1C1E; }
         .badge-libre { color: #34C759; font-weight: bold; font-size: 18px; }
     </style>
@@ -44,7 +44,20 @@
     <button id="btn" onclick="checkRooms()">Vérifier les disponibilités</button>
 </div>
 
-<div id="results"></div>
+<div id="results">
+    <div id="sect-Bias2" class="building-container">
+        <div class="section-title"><span class="dot" style="background:var(--bias2)"></span>Bâtiment Bias 2</div>
+        <div class="list"></div>
+    </div>
+    <div id="sect-Bias" class="building-container">
+        <div class="section-title"><span class="dot" style="background:var(--bias)"></span>Bâtiment Bias</div>
+        <div class="list"></div>
+    </div>
+    <div id="sect-Veil" class="building-container">
+        <div class="section-title"><span class="dot" style="background:var(--veil)"></span>Bâtiment Simone Veil</div>
+        <div class="list"></div>
+    </div>
+</div>
 
 <script>
     const SALLES = [
@@ -82,17 +95,21 @@
         const status = document.getElementById('status');
         const pBar = document.getElementById('p-bar');
         const pCont = document.getElementById('p-cont');
-        const resultsDiv = document.getElementById('results');
-
+        
         const dateR = document.getElementById('date').value.replace(/-/g, "");
         const startR = parseInt(document.getElementById('start').value.replace(":", ""));
         const endR = parseInt(document.getElementById('end').value.replace(":", ""));
 
+        // Reset
         btn.disabled = true;
         pCont.style.display = "block";
-        resultsDiv.innerHTML = "";
+        pBar.style.width = "0%";
         
-        let buildingData = { "Bias 2": [], "Bias": [], "Veil": [] };
+        // Cacher et vider les listes
+        document.querySelectorAll('.building-container').forEach(c => {
+            c.style.display = 'none';
+            c.querySelector('.list').innerHTML = '';
+        });
 
         for (let i = 0; i < SALLES.length; i++) {
             const salle = SALLES[i];
@@ -106,44 +123,31 @@
                 const text = await res.text();
                 
                 if (!isOccupied(text, dateR, startR, endR)) {
-                    // Trier dans le bon bâtiment
-                    if (salle.nom.startsWith("Bias 2")) buildingData["Bias 2"].push(salle.nom);
-                    else if (salle.nom.toLowerCase().startsWith("veil")) buildingData["Veil"].push(salle.nom);
-                    else if (salle.nom.toLowerCase().startsWith("bias")) buildingData["Bias"].push(salle.nom);
+                    addRoomToUI(salle.nom);
                 }
             } catch (e) {}
         }
 
-        renderResults(buildingData);
         status.innerText = "Recherche terminée.";
         btn.disabled = false;
         setTimeout(() => { pCont.style.display = "none"; }, 2000);
     }
 
-    function renderResults(data) {
-        const resultsDiv = document.getElementById('results');
-        const order = [
-            { key: "Bias 2", color: "var(--bias2)" },
-            { key: "Bias", color: "var(--bias)" },
-            { key: "Veil", color: "var(--veil)" }
-        ];
+    function addRoomToUI(nom) {
+        let containerId = "";
+        if (nom.startsWith("Bias 2")) containerId = "sect-Bias2";
+        else if (nom.toLowerCase().startsWith("veil")) containerId = "sect-Veil";
+        else if (nom.toLowerCase().startsWith("bias")) containerId = "sect-Bias";
 
-        let hasAny = false;
-        order.forEach(group => {
-            if (data[group.key].length > 0) {
-                hasAny = true;
-                resultsDiv.innerHTML += `
-                    <div class="section-title">
-                        <span class="dot" style="background:${group.color}"></span>
-                        Bâtiment ${group.key}
-                    </div>`;
-                data[group.key].forEach(nom => {
-                    resultsDiv.innerHTML += `<div class="result-item"><span class="salle-nom">${nom}</span><span class="badge-libre">✅</span></div>`;
-                });
-            }
-        });
-
-        if (!hasAny) resultsDiv.innerHTML = "<div class='card' style='text-align:center'>Aucune salle libre trouvée.</div>";
+        if (containerId) {
+            const container = document.getElementById(containerId);
+            container.style.display = 'block'; // On affiche le bâtiment dès qu'il a une salle
+            container.querySelector('.list').innerHTML += `
+                <div class="result-item">
+                    <span class="salle-nom">${nom}</span>
+                    <span class="badge-libre">✅</span>
+                </div>`;
+        }
     }
 
     function isOccupied(data, dateR, startR, endR) {
