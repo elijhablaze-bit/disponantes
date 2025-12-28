@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Universal Stealth Scanner</title>
+    <style>
+        :root { --glow: #00ff41; --bg: #050505; }
+        body { background: var(--bg); color: var(--glow); font-family: 'Courier New', monospace; padding: 15px; margin: 0; }
+        .terminal { border: 1px solid var(--glow); padding: 15px; border-radius: 8px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.1); }
+        .status-bar { border-bottom: 1px solid var(--glow); margin-bottom: 15px; padding-bottom: 5px; font-size: 10px; display: flex; justify-content: space-between; }
+        .found-card { background: var(--glow); color: #000; padding: 12px; margin: 10px 0; border-radius: 4px; font-weight: bold; border-left: 5px solid #fff; }
+        button { width: 100%; padding: 15px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; border-radius: 5px; margin-bottom: 10px; }
+        select { width: 100%; padding: 10px; background: #111; color: var(--glow); border: 1px solid #333; margin-bottom: 15px; border-radius: 5px; }
+        #log { font-size: 11px; height: 180px; overflow-y: auto; color: rgba(0, 255, 65, 0.6); border-top: 1px solid #222; padding-top: 10px; }
+        .progress { height: 3px; background: #111; margin: 10px 0; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--glow); width: 0%; transition: width 0.2s; }
+    </style>
+</head>
+<body>
+
+<div class="terminal">
+    <div class="status-bar">
+        <span>NET_PROTO: v4.0</span>
+        <span id="net-info">RESEAU: INCONNU</span>
+    </div>
+    
+    <label style="font-size: 10px;">PLAGE D'ADRESSES :</label>
+    <select id="subnet-select">
+        <option value="192.168.1">192.168.1.x (Standard)</option>
+        <option value="192.168.0">192.168.0.x (Standard B)</option>
+        <option value="10.0.0">10.0.0.x (Public / Entreprise)</option>
+        <option value="172.16.0">172.16.0.x (Privé)</option>
+    </select>
+
+    <button id="btn" onclick="universalScan()">DÉMARRER SCAN UNIVERSEL</button>
+    
+    <div class="progress"><div id="p-bar" class="progress-bar"></div></div>
+    
+    <div id="results"></div>
+    <div id="log"></div>
+</div>
+
+<script>
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+    async function universalScan() {
+        const log = document.getElementById('log');
+        const res = document.getElementById('results');
+        const pBar = document.getElementById('p-bar');
+        const btn = document.getElementById('btn');
+        const subnet = document.getElementById('subnet-select').value;
+        
+        const ports = [80, 8008, 8009, 5000, 7000, 9100]; 
+        btn.disabled = true;
+        res.innerHTML = "";
+        log.innerHTML = `[!] Scan initialisé sur ${subnet}.0/24...<br>`;
+
+        for(let i = 1; i < 255; i++) {
+            const ip = `${subnet}.${i}`; 
+            pBar.style.width = `${(i/254)*100}%`;
+            
+            if(i % 10 === 0) log.innerHTML += `Ping ${ip}...<br>`;
+            if(log.innerHTML.length > 600) log.innerHTML = log.innerHTML.slice(-400);
+
+            // Scan multi-ports
+            ports.forEach(async (port) => {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 900);
+
+                try {
+                    // Test de connexion furtif
+                    await fetch(`http://${ip}:${port}`, { mode: 'no-cors', signal: controller.signal });
+                    
+                    // Si un appareil répond, on l'affiche avec son type probable
+                    let type = port === 80 ? "HTTP/ADMIN" : (port === 5000 || port === 7000 ? "AIRPLAY" : "CHROMECAST/TV");
+                    res.innerHTML += `
+                        <div class="found-card">
+                            📡 APPAREIL DETECTÉ<br>
+                            IP: ${ip}:${port}<br>
+                            TYPE: ${type}
+                        </div>`;
+                } catch (e) {}
+                clearTimeout(timeout);
+            });
+
+            // Délai furtif variable pour casser les motifs de détection
+            await sleep(80 + Math.random() * 50); 
+            log.scrollTop = log.scrollHeight;
+        }
+
+        log.innerHTML += "<br>[+] SCAN TERMINÉ.";
+        btn.disabled = false;
+    }
+</script>
+</body>
+</html>
